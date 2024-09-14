@@ -9,14 +9,12 @@ const config: Config = {
   theme: {
     extend: {
       backgroundImage: {
-        "bg-image": "url('/bg.jpg')",
-        blackOverlay:
-          "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 100%)",
+        "bg-image": "url('/bg.jpg')", // Ensure the path is correct
       },
-      
       colors: {
         background: "var(--background)",
-        foreground: "var(--foreground)"
+        foreground: "var(--foreground)",
+        blackOverlay: "rgba(0, 0, 0, 0.5)", // Add this line
       },
     },
   },
