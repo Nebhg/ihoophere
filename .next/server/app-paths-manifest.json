@@ -1,4 +1,3 @@
 {
-  "/page": "app/page.js",
-  "/api/webhooks/route": "app/api/webhooks/route.js"
+  "/page": "app/page.js"
 }

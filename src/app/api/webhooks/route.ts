@@ -1,8 +1,8 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { Webhook } from 'svix'
+import { headers } from 'next/headers'
 import { WebhookEvent } from '@clerk/nextjs/server'
 import { createClerkSupabaseClientSsr } from '@/lib/client'
-import { headers } from 'next/headers'
 
 // Define types for Clerk user data
 interface ClerkUser {
