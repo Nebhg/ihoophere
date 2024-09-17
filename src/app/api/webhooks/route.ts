@@ -94,7 +94,7 @@ async function handleUserCreated(supabase: SupabaseClient, userData: ClerkUser):
     const { data, error } = await supabase
       .from('users')
       .insert({
-        clerkid: id,
+        clerk_id: id,
         email: primaryEmail?.email_address,
         first_name: first_name || null,
         last_name: last_name || null,
