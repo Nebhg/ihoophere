@@ -55,13 +55,14 @@ export default function TaskManager() {
     if (!user) return;
 
     console.log('User:', user); // Log user data
-    console.log('User ID:', user.id); // Log user ID
+    console.log('User ID:', user?.id); // Log user ID with optional chaining
+
     // Function to load user role from the Supabase database
     async function loadUserRole() {
       const { data, error } = await client
         .from('users')
         .select('role')
-        .eq('clerk_id', "user_2mGET9NsfRkGsSj5PKgXxoRwLK3") // Use Clerk user ID directly
+        .eq('clerk_id', user?.id) // Use Clerk user ID directly with optional chaining
         .single();
 
       console.log('User role data:', data); // Log role data
