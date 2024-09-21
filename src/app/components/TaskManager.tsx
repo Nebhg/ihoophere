@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useSession, useUser } from '@clerk/nextjs';
 import { createClient } from '@supabase/supabase-js';
 import { redirect } from 'next/navigation';
-import { UserRole } from '@/types/globals.d';
+import { UserRole } from '@/src/app/types/globals.d';
 
 // Function to check if the user's role matches the required role
 function checkUserRole(user: { role: UserRole }, requiredRole: UserRole): boolean {
