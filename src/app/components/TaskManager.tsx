@@ -1,11 +1,12 @@
 'use client';
 
-// Import necessary hooks and functions from React, Clerk, Supabase, and Next.js
 import { useEffect, useState } from 'react';
 import { useSession, useUser } from '@clerk/nextjs';
 import { createClient } from '@supabase/supabase-js';
-import { redirect } from 'next/navigation';
 import { UserRole } from '@/src/app/types/globals.d';
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Clock, Trophy } from "lucide-react";
 
 // Function to check if the user's role matches the required role
 function checkUserRole(user: { role: UserRole }, requiredRole: UserRole): boolean {
@@ -13,16 +14,14 @@ function checkUserRole(user: { role: UserRole }, requiredRole: UserRole): boolea
 }
 
 export default function TaskManager() {
-  // State variables to manage tasks, loading state, task name, and user role
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
   const { user } = useUser();
   const { session } = useSession();
   const [isCoach, setIsCoach] = useState(false);
-  const [userRole, setUserRole] = useState<UserRole | null>(null); // New state for user role
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
 
-  // Function to create a Supabase client with Clerk authentication
   function createClerkSupabaseClient() {
     return createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -47,52 +46,38 @@ export default function TaskManager() {
     );
   }
 
-  // Create a Supabase client instance
   const client = createClerkSupabaseClient();
 
-  // useEffect hook to load tasks and user role when the user is available
   useEffect(() => {
     if (!user) return;
 
-    console.log('User:', user); // Log user data
-    console.log('User ID:', user?.id); // Log user ID with optional chaining
-
-    // Function to load user role from the Supabase database
     async function loadUserRole() {
       const { data, error } = await client
         .from('users')
         .select('role')
-        .eq('clerk_id', user?.id) // Use Clerk user ID directly with optional chaining
+        .eq('clerk_id', user?.id)
         .single();
-
-      console.log('User role data:', data); // Log role data
-      console.log('User role error:', error); // Log role error
 
       if (!error && data) {
         const role = data.role as UserRole;
-        setUserRole(role); // Set the user role
+        setUserRole(role);
         setIsCoach(checkUserRole({ role }, UserRole.Coach));
       }
     }
 
-    // Function to load tasks from the Supabase database
     async function loadTasks() {
       setLoading(true);
       const { data, error } = await client.from('tasks').select();
-      console.log('Tasks data:', data); // Log tasks data
-      console.log('Tasks error:', error); // Log tasks error
       if (!error) setTasks(data);
       setLoading(false);
     }
 
-    // Load user role and tasks
     (async () => {
       await loadUserRole();
       await loadTasks();
     })();
   }, [user]);
 
-  // Function to create a new task
   async function createTask(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     await client.from('tasks').insert({
@@ -102,35 +87,61 @@ export default function TaskManager() {
   }
 
   return (
-    <div>
-      <h1>Tasks</h1>
-
-      {/* Display user role */}
-      {userRole && <p>Your role: {UserRole[userRole]}</p>}
-
-      {/* Display loading message */}
-      {loading && <p>Loading...</p>}
-
-      {/* Display tasks if available */}
-      {!loading && tasks.length > 0 && tasks.map((task: any) => <p key={task.id}>{task.name}</p>)}
-
-      {/* Display message if no tasks are found */}
-      {!loading && tasks.length === 0 && <p>No tasks found</p>}
-
-      {/* Display form to add new tasks if the user is a coach */}
-      {isCoach && (
-        <form onSubmit={createTask}>
-          <input
-            autoFocus
-            type="text"
-            name="name"
-            placeholder="Enter new task"
-            onChange={(e) => setName(e.target.value)}
-            value={name}
-          />
-          <button type="submit">Add</button>
-        </form>
-      )}
+    <div className="container mx-auto p-4 max-h-screen overflow-y-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {loading && <p className="text-black dark:text-white">Loading...</p>}
+        {!loading && tasks.length > 0 && tasks.map((task: any) => (
+          <Card key={task.id} className="overflow-hidden bg-white dark:bg-gray-800">
+            <CardHeader className="pb-0">
+              <div className="flex items-center space-x-2">
+                <div>
+                  <h3 className="font-semibold text-black dark:text-white">Task</h3>
+                  <h4 className="text-lg font-bold text-black dark:text-white">{task.name}</h4>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-black dark:text-white">{task.description}</p>
+              <div className="flex items-center mt-2 text-sm text-gray-600 dark:text-gray-300">
+                <Clock className="h-4 w-4 mr-1" />
+                <span>{task.ageRange}</span>
+              </div>
+            </CardContent>
+            <CardFooter className="flex flex-col items-start pt-0">
+              <div className="flex flex-wrap gap-2 mb-2">
+                {task.tags && task.tags.map((tag: string, tagIndex: number) => (
+                  <span key={tagIndex} className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+              <div className="flex justify-between w-full">
+                <Button variant="link" className="text-blue-600 p-0">
+                  More info
+                </Button>
+                <Button variant="link" className="text-blue-600 p-0">
+                  View schedule
+                </Button>
+              </div>
+            </CardFooter>
+          </Card>
+        ))}
+        {!loading && tasks.length === 0 && <p className="text-black dark:text-white">No tasks found</p>}
+        {isCoach && (
+          <form onSubmit={createTask} className="w-full">
+            <input
+              autoFocus
+              type="text"
+              name="name"
+              placeholder="Enter new task"
+              onChange={(e) => setName(e.target.value)}
+              value={name}
+              className="w-full p-2 border rounded mb-2 bg-white dark:bg-gray-700 text-black dark:text-white"
+            />
+            <button type="submit" className="w-full p-2 bg-blue-600 text-white rounded">Add</button>
+          </form>
+        )}
+      </div>
     </div>
   );
 }
