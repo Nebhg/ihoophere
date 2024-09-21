@@ -3,6 +3,7 @@ import { Webhook } from 'svix'
 import { headers } from 'next/headers'
 import { WebhookEvent } from '@clerk/nextjs/server'
 import { createClerkSupabaseClientSsr } from '@/lib/client'
+import { UserRole } from '@/types/globals.d'
 
 // Define types for Clerk user data
 interface ClerkUser {
@@ -98,12 +99,14 @@ async function handleUserCreated(supabase: SupabaseClient, userData: ClerkUser):
         email: primaryEmail?.email_address,
         first_name: first_name || null,
         last_name: last_name || null,
+        role: UserRole.Player, // Default role to 'Player'
       })
       .single()
 
     if (error) throw error
     return new Response('User created successfully', { status: 200 })
-  } catch (error) {
+  } 
+  catch (error) {
     console.error('Error creating user:', error)
     return new Response('Error creating user', { status: 500 })
   }
@@ -120,12 +123,14 @@ async function handleUserUpdated(supabase: SupabaseClient, userData: ClerkUser):
         email: primaryEmail?.email_address,
         first_name: first_name || null,
         last_name: last_name || null,
+        role: UserRole.Player, // Default role to 'Player'
       })
       .eq('clerk_id', id)
 
     if (error) throw error
     return new Response('User updated successfully', { status: 200 })
-  } catch (error) {
+  } 
+  catch (error) {
     console.error('Error updating user:', error)
     return new Response('Error updating user', { status: 500 })
   }
@@ -140,7 +145,8 @@ async function handleUserDeleted(supabase: SupabaseClient, clerkId: string): Pro
 
     if (error) throw error
     return new Response('User deleted successfully', { status: 200 })
-  } catch (error) {
+  } 
+  catch (error) {
     console.error('Error deleting user:', error)
     return new Response('Error deleting user', { status: 500 })
   }

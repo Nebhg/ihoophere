@@ -1,6 +1,9 @@
 export {};
 
-export type Roles = "coach" | "player";
+export enum UserRole {
+  Player = 0,
+  Coach = 1,
+}
 
 declare global {
   interface CustomJwtSessionClaims {
