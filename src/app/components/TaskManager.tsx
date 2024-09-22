@@ -74,6 +74,7 @@ export default function TaskManager() {
       const { data, error, count } = await client
         .from('tasks')
         .select('*', { count: 'exact' })
+        .or(`public.eq.true,user_id.eq.${user?.id}`)
         .range((page - 1) * tasksPerPage, page * tasksPerPage - 1);
       if (!error) {
         setTasks(data);
