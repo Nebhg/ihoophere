@@ -7,6 +7,7 @@ import { UserRole } from '@/src/app/types/globals.d';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Clock, Trophy } from "lucide-react";
+import TaskCreationForm from './TaskCreationForm';
 
 // Function to check if the user's role matches the required role
 function checkUserRole(user: { role: UserRole }, requiredRole: UserRole): boolean {
@@ -16,7 +17,7 @@ function checkUserRole(user: { role: UserRole }, requiredRole: UserRole): boolea
 export default function TaskManager() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [name, setName] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const { user } = useUser();
   const { session } = useSession();
   const [isCoach, setIsCoach] = useState(false);
@@ -89,10 +90,10 @@ export default function TaskManager() {
 
   const totalPages = Math.ceil(totalTasks / tasksPerPage);
 
-  async function createTask(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function createTask(task: any) {
     await client.from('tasks').insert({
-      name,
+      ...task,
+      user_id: user?.id,
     });
     window.location.reload();
   }
@@ -139,18 +140,9 @@ export default function TaskManager() {
         ))}
         {!loading && tasks.length === 0 && <p className="text-black dark:text-white">No tasks found</p>}
         {isCoach && (
-          <form onSubmit={createTask} className="w-full">
-            <input
-              autoFocus
-              type="text"
-              name="name"
-              placeholder="Enter new task"
-              onChange={(e) => setName(e.target.value)}
-              value={name}
-              className="w-full p-2 border rounded mb-2 bg-white dark:bg-gray-700 text-black dark:text-white"
-            />
-            <button type="submit" className="w-full p-2 bg-blue-600 text-white rounded">Add</button>
-          </form>
+          <Button onClick={() => setIsModalOpen(true)} className="w-full p-2 bg-blue-600 text-white rounded">
+            Create Task
+          </Button>
         )}
       </div>
       <div className="flex justify-between items-center mt-4">
@@ -183,6 +175,12 @@ export default function TaskManager() {
           Next
         </Button>
       </div>
+      {isModalOpen && (
+        <TaskCreationForm
+          onSubmit={createTask}
+          onClose={() => setIsModalOpen(false)}
+        />
+      )}
     </div>
   );
 }
