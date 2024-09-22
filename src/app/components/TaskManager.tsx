@@ -21,6 +21,9 @@ export default function TaskManager() {
   const { session } = useSession();
   const [isCoach, setIsCoach] = useState(false);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalTasks, setTotalTasks] = useState(0);
+  const tasksPerPage = 12;
 
   function createClerkSupabaseClient() {
     return createClient(
@@ -65,18 +68,26 @@ export default function TaskManager() {
       }
     }
 
-    async function loadTasks() {
+    async function loadTasks(page: number) {
       setLoading(true);
-      const { data, error } = await client.from('tasks').select();
-      if (!error) setTasks(data);
+      const { data, error, count } = await client
+        .from('tasks')
+        .select('*', { count: 'exact' })
+        .range((page - 1) * tasksPerPage, page * tasksPerPage - 1);
+      if (!error) {
+        setTasks(data);
+        setTotalTasks(count || 0);
+      }
       setLoading(false);
     }
 
     (async () => {
       await loadUserRole();
-      await loadTasks();
+      await loadTasks(currentPage);
     })();
-  }, [user]);
+  }, [user, currentPage]);
+
+  const totalPages = Math.ceil(totalTasks / tasksPerPage);
 
   async function createTask(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -141,6 +152,36 @@ export default function TaskManager() {
             <button type="submit" className="w-full p-2 bg-blue-600 text-white rounded">Add</button>
           </form>
         )}
+      </div>
+      <div className="flex justify-between items-center mt-4">
+        <Button
+          variant="link"
+          className="text-blue-600 p-0"
+          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+          disabled={currentPage === 1}
+        >
+          Previous
+        </Button>
+        <div className="flex space-x-2">
+          {Array.from({ length: totalPages }, (_, index) => (
+            <Button
+              key={index + 1}
+              variant="link"
+              className={`text-blue-600 p-0 ${currentPage === index + 1 ? 'font-bold' : ''}`}
+              onClick={() => setCurrentPage(index + 1)}
+            >
+              {index + 1}
+            </Button>
+          ))}
+        </div>
+        <Button
+          variant="link"
+          className="text-blue-600 p-0"
+          onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+          disabled={currentPage === totalPages}
+        >
+          Next
+        </Button>
       </div>
     </div>
   );

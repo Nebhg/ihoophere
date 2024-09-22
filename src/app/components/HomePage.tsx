@@ -7,9 +7,8 @@ export default function HomePage() {
     <>
     
     <Protect>
-        <div className="p-8 rounded-lg shadow-lg backdrop-blur-sm">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">Enter your postcode</h2>
-          <MapComponent />
+        <div className="rounded-lg shadow-lg backdrop-blur-sm">
+          
           <TaskManager />
         </div>
     </Protect>
