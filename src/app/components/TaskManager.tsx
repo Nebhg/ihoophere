@@ -6,7 +6,7 @@ import { createClient } from '@supabase/supabase-js';
 import { UserRole } from '@/src/app/types/globals.d';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, Trophy } from "lucide-react";
+import { Clock, Trophy, MapPin, DollarSign, Users, Eye } from "lucide-react";
 import TaskCreationForm from './TaskCreationForm';
 
 // Function to check if the user's role matches the required role
@@ -115,8 +115,24 @@ export default function TaskManager() {
             <CardContent>
               <p className="text-sm text-black dark:text-white">{task.description}</p>
               <div className="flex items-center mt-2 text-sm text-gray-600 dark:text-gray-300">
+                <MapPin className="h-4 w-4 mr-1" />
+                <span>{task.location}</span>
+              </div>
+              <div className="flex items-center mt-2 text-sm text-gray-600 dark:text-gray-300">
                 <Clock className="h-4 w-4 mr-1" />
-                <span>{task.ageRange}</span>
+                <span>{new Date(task.time).toLocaleString()}</span>
+              </div>
+              <div className="flex items-center mt-2 text-sm text-gray-600 dark:text-gray-300">
+                <DollarSign className="h-4 w-4 mr-1" />
+                <span>{task.price}</span>
+              </div>
+              <div className="flex items-center mt-2 text-sm text-gray-600 dark:text-gray-300">
+                <Users className="h-4 w-4 mr-1" />
+                <span>{task.spaces_left} spaces left</span>
+              </div>
+              <div className="flex items-center mt-2 text-sm text-gray-600 dark:text-gray-300">
+                <Eye className="h-4 w-4 mr-1" />
+                <span>{task.public ? 'Public' : 'Private'}</span>
               </div>
             </CardContent>
             <CardFooter className="flex flex-col items-start pt-0">
