@@ -1,5 +1,9 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
+import { Autocomplete } from '@react-google-maps/api'; // Correct import
+
+// Remove incorrect import
+// import { google } from "@react-google-maps/api";
 
 interface TaskCreationFormProps {
   onSubmit: (task: any) => void;
@@ -14,6 +18,25 @@ export default function TaskCreationForm({ onSubmit, onClose }: TaskCreationForm
   const [spacesLeft, setSpacesLeft] = useState(0);
   const [description, setDescription] = useState('');
   const [isPublic, setIsPublic] = useState(false);
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+
+  const onLoad = (autocomplete: google.maps.places.Autocomplete) => {
+    autocompleteRef.current = autocomplete;
+  };
+
+  const handlePlaceChanged = () => {
+    const autocomplete = autocompleteRef.current;
+    if (autocomplete) {
+      const place = autocomplete.getPlace();
+      if (place.geometry?.location) {
+        setLatitude(place.geometry.location.lat());
+        setLongitude(place.geometry.location.lng());
+        setLocation(place.formatted_address || '');
+      }
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -25,6 +48,8 @@ export default function TaskCreationForm({ onSubmit, onClose }: TaskCreationForm
       spaces_left: spacesLeft,
       description,
       public: isPublic,
+      latitude,
+      longitude,
     });
     onClose();
   };
@@ -34,21 +59,25 @@ export default function TaskCreationForm({ onSubmit, onClose }: TaskCreationForm
       <div className="bg-white dark:bg-gray-800 p-4 rounded shadow-lg w-full max-w-md">
         <h2 className="text-xl font-bold mb-4 text-black dark:text-white">Create Task</h2>
         <form onSubmit={handleSubmit}>
+          <Autocomplete
+            onLoad={onLoad}
+            onPlaceChanged={handlePlaceChanged}
+          >
+            <input
+              type="text"
+              name="location"
+              placeholder="Enter location"
+              onChange={(e) => setLocation(e.target.value)}
+              value={location}
+              className="w-full p-2 border rounded mb-2 bg-white dark:bg-gray-700 text-black dark:text-white"
+            />
+          </Autocomplete>
           <input
-            autoFocus
             type="text"
             name="name"
             placeholder="Enter task name"
             onChange={(e) => setName(e.target.value)}
             value={name}
-            className="w-full p-2 border rounded mb-2 bg-white dark:bg-gray-700 text-black dark:text-white"
-          />
-          <input
-            type="text"
-            name="location"
-            placeholder="Enter location"
-            onChange={(e) => setLocation(e.target.value)}
-            value={location}
             className="w-full p-2 border rounded mb-2 bg-white dark:bg-gray-700 text-black dark:text-white"
           />
           <input
