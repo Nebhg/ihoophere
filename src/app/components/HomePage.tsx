@@ -8,7 +8,7 @@ export default function HomePage() {
     
     <Protect>
         <div className="rounded-lg shadow-lg backdrop-blur-sm">
-          
+          <MapComponent />
           <TaskManager />
         </div>
     </Protect>
