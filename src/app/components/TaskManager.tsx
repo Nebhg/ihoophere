@@ -53,6 +53,32 @@ export default function TaskManager() {
 
   const client = createClerkSupabaseClient();
 
+  async function loadTasks(page: number) {
+    console.log('loadTasks called with page:', page);
+    setLoading(true);
+    try {
+      const { data, error, count } = await client
+        .from('tasks')
+        .select('*', { count: 'exact' })
+        .or(`public.eq.true,user_id.eq.${user?.id}`)
+        .range((page - 1) * tasksPerPage, page * tasksPerPage - 1);
+
+      if (error) {
+        console.error('Supabase error in loadTasks:', error);
+        throw error;
+      }
+
+      console.log('Tasks loaded:', data);
+      setTasks(data || []);
+      setTotalTasks(count || 0);
+    } catch (error) {
+      console.error('Error in loadTasks:', error);
+      // Handle error (e.g., show an error message to the user)
+    } finally {
+      setLoading(false);
+    }
+  }
+
   useEffect(() => {
     if (!user) return;
 
@@ -67,22 +93,8 @@ export default function TaskManager() {
         const role = data.role as UserRole;
         setUserRole(role);
         setIsCoach(checkUserRole({ role }, UserRole.Coach));
-        setSupabaseUserId(data.id); // Store the Supabase UUID
+        setSupabaseUserId(data.id);
       }
-    }
-
-    async function loadTasks(page: number) {
-      setLoading(true);
-      const { data, error, count } = await client
-        .from('tasks')
-        .select('*', { count: 'exact' })
-        .or(`public.eq.true,user_id.eq.${user?.id}`)
-        .range((page - 1) * tasksPerPage, page * tasksPerPage - 1);
-      if (!error) {
-        setTasks(data);
-        setTotalTasks(count || 0);
-      }
-      setLoading(false);
     }
 
     (async () => {
@@ -238,7 +250,4 @@ export default function TaskManager() {
       )}
     </div>
   );
-}
-function loadTasks(currentPage: number) {
-  throw new Error('Function not implemented.');
 }
