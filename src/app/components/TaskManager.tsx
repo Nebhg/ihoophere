@@ -25,6 +25,7 @@ export default function TaskManager() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalTasks, setTotalTasks] = useState(0);
   const tasksPerPage = 12;
+  const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
 
   function createClerkSupabaseClient() {
     return createClient(
@@ -58,7 +59,7 @@ export default function TaskManager() {
     async function loadUserRole() {
       const { data, error } = await client
         .from('users')
-        .select('role')
+        .select('id, role')
         .eq('clerk_id', user?.id)
         .single();
 
@@ -66,6 +67,7 @@ export default function TaskManager() {
         const role = data.role as UserRole;
         setUserRole(role);
         setIsCoach(checkUserRole({ role }, UserRole.Coach));
+        setSupabaseUserId(data.id); // Store the Supabase UUID
       }
     }
 
@@ -97,6 +99,37 @@ export default function TaskManager() {
       user_id: user?.id,
     });
     window.location.reload();
+  }
+
+  async function handleSignup(taskId: string) {
+    if (!user || !supabaseUserId) {
+      console.error('User not logged in or Supabase ID not found');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/task-signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ taskId, userId: supabaseUserId }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to sign up for task');
+      }
+
+      const result = await response.json();
+      console.log('Signup successful:', result);
+
+      // Refresh the tasks list
+      await loadTasks(currentPage);
+    } catch (error) {
+      console.error('Error signing up for task:', error);
+      // Handle error (e.g., show an error message to the user)
+    }
   }
 
   return (
@@ -152,6 +185,11 @@ export default function TaskManager() {
                   View schedule
                 </Button>
               </div>
+              {task.spaces_left > 0 && (
+                <Button onClick={() => handleSignup(task.id)} className="mt-2 w-full">
+                  Sign Up
+                </Button>
+              )}
             </CardFooter>
           </Card>
         ))}
@@ -200,4 +238,7 @@ export default function TaskManager() {
       )}
     </div>
   );
+}
+function loadTasks(currentPage: number) {
+  throw new Error('Function not implemented.');
 }
