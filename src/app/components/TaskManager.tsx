@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSession, useUser } from '@clerk/nextjs';
+import { useSession, useUser, useClerk } from '@clerk/nextjs';
 import { createClient } from '@supabase/supabase-js';
 import { UserRole } from '@/src/app/types/globals.d';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -20,6 +20,7 @@ export default function TaskManager() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { user } = useUser();
   const { session } = useSession();
+  const { client: clerkClient, setActive } = useClerk();
   const [isCoach, setIsCoach] = useState(false);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -36,6 +37,7 @@ export default function TaskManager() {
           fetch: async (url, options = {}) => {
             const clerkToken = await session?.getToken({
               template: 'supabase',
+              skipCache: true
             });
 
             const headers = new Headers(options?.headers);
@@ -52,6 +54,13 @@ export default function TaskManager() {
   }
 
   const client = createClerkSupabaseClient();
+
+  // Function to switch sessions
+  async function switchSession(sessionId: string) {
+    await setActive({ session: sessionId });
+    // Reload tasks after switching session
+    await loadTasks(currentPage);
+  }
 
   async function loadTasks(page: number) {
     console.log('loadTasks called with page:', page);
@@ -81,19 +90,32 @@ export default function TaskManager() {
 
   useEffect(() => {
     if (!user) return;
-
     async function loadUserRole() {
+      console.log('loadUserRole called for user:', user?.id);
+      console.log('Current session:', session);
+      
+      if (!user) {
+        console.log('No user found, skipping loadUserRole');
+        return;
+      }
+
       const { data, error } = await client
         .from('users')
         .select('id, role')
-        .eq('clerk_id', user?.id)
+        .eq('clerk_id', user.id)
         .single();
+
+      console.log('Supabase query result:', { data, error });
 
       if (!error && data) {
         const role = data.role as UserRole;
         setUserRole(role);
         setIsCoach(checkUserRole({ role }, UserRole.Coach));
         setSupabaseUserId(data.id);
+        console.log('User role set:', role);
+        console.log('Supabase user ID set:', data.id);
+      } else {
+        console.error('Error loading user role:', error);
       }
     }
 
@@ -114,12 +136,19 @@ export default function TaskManager() {
   }
 
   async function handleSignup(taskId: string) {
+    console.log('handleSignup called with taskId:', taskId);
+    console.log('Current user:', user);
+    console.log('Supabase user ID:', supabaseUserId);
+
     if (!user || !supabaseUserId) {
       console.error('User not logged in or Supabase ID not found');
+      console.log('user object:', user);
+      console.log('supabaseUserId:', supabaseUserId);
       return;
     }
 
     try {
+      console.log('Sending POST request to /api/task-signup');
       const response = await fetch('/api/task-signup', {
         method: 'POST',
         headers: {
@@ -128,13 +157,15 @@ export default function TaskManager() {
         body: JSON.stringify({ taskId, userId: supabaseUserId }),
       });
 
+      console.log('Response status:', response.status);
+      const responseData = await response.json();
+      console.log('Response data:', responseData);
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to sign up for task');
+        throw new Error(responseData.error || 'Failed to sign up for task');
       }
 
-      const result = await response.json();
-      console.log('Signup successful:', result);
+      console.log('Signup successful:', responseData);
 
       // Refresh the tasks list
       await loadTasks(currentPage);
@@ -248,6 +279,10 @@ export default function TaskManager() {
           onClose={() => setIsModalOpen(false)}
         />
       )}
+      {/* Add a button or UI element to switch sessions */}
+      <Button onClick={() => switchSession('new-session-id')} className="w-full p-2 bg-blue-600 text-white rounded">
+        Switch Session
+      </Button>
     </div>
   );
 }
