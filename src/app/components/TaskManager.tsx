@@ -8,6 +8,8 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button";
 import { Clock, Trophy, MapPin, DollarSign, Users, Eye } from "lucide-react";
 import TaskCreationForm from './TaskCreationForm';
+import HoverableAttendeeList from './HoverableAttendeeList';
+import { Task, Attendee } from '@/src/app/types/globals.d';
 
 // Function to check if the user's role matches the required role
 function checkUserRole(user: { role: UserRole }, requiredRole: UserRole): boolean {
@@ -15,7 +17,7 @@ function checkUserRole(user: { role: UserRole }, requiredRole: UserRole): boolea
 }
 
 export default function TaskManager() {
-  const [tasks, setTasks] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { user } = useUser();
@@ -66,19 +68,47 @@ export default function TaskManager() {
     console.log('loadTasks called with page:', page);
     setLoading(true);
     try {
-      const { data, error, count } = await client
+      // First, fetch the tasks
+      const { data: tasksData, error: tasksError, count } = await client
         .from('tasks')
         .select('*', { count: 'exact' })
         .or(`public.eq.true,user_id.eq.${user?.id}`)
         .range((page - 1) * tasksPerPage, page * tasksPerPage - 1);
 
-      if (error) {
-        console.error('Supabase error in loadTasks:', error);
-        throw error;
+      if (tasksError) {
+        console.error('Supabase error in loadTasks:', tasksError);
+        throw tasksError;
       }
 
-      console.log('Tasks loaded:', data);
-      setTasks(data || []);
+      const tasks: Task[] = tasksData || [];
+
+      if (tasks.length > 0) {
+        // Flatten and deduplicate attendee IDs
+        const uniqueAttendeeIds = Array.from(new Set(tasks.flatMap(task => task.attendees || [])));
+
+        if (uniqueAttendeeIds.length > 0) {
+          const { data: attendeesData, error: attendeesError } = await client
+            .from('users')
+            .select('id, first_name, last_name')
+            .in('id', uniqueAttendeeIds);
+
+          if (attendeesError) {
+            console.error('Supabase error fetching attendees:', attendeesError);
+            throw attendeesError;
+          }
+
+          const attendeeMap: Map<string, Attendee> = new Map(attendeesData?.map(a => [a.id, a]) || []);
+
+          tasks.forEach((task: Task) => {
+            task.attendeeDetails = (task.attendees || [])
+              .map(id => attendeeMap.get(id))
+              .filter((attendee): attendee is Attendee => attendee !== undefined);
+          });
+        }
+      }
+
+      console.log('Tasks with attendee details:', tasks);
+      setTasks(tasks);
       setTotalTasks(count || 0);
     } catch (error) {
       console.error('Error in loadTasks:', error);
@@ -205,7 +235,9 @@ export default function TaskManager() {
               </div>
               <div className="flex items-center mt-2 text-sm text-gray-600 dark:text-gray-300">
                 <Users className="h-4 w-4 mr-1" />
-                <span>{task.spaces_left} spaces left</span>
+                <HoverableAttendeeList attendees={task.attendeeDetails || []}>
+                  <span>{task.spaces_left} space{task.spaces_left !== 1 ? 's' : ''} left</span>
+                </HoverableAttendeeList>
               </div>
               <div className="flex items-center mt-2 text-sm text-gray-600 dark:text-gray-300">
                 <Eye className="h-4 w-4 mr-1" />
@@ -279,10 +311,7 @@ export default function TaskManager() {
           onClose={() => setIsModalOpen(false)}
         />
       )}
-      {/* Add a button or UI element to switch sessions */}
-      <Button onClick={() => switchSession('new-session-id')} className="w-full p-2 bg-blue-600 text-white rounded">
-        Switch Session
-      </Button>
+      
     </div>
   );
 }
